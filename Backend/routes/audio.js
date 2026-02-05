@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
+const FormData = require('form-data');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
@@ -51,25 +52,21 @@ router.post('/predict', upload.single('file'), async (req, res) => {
     const filePath = req.file.path;
     const fileName = req.file.originalname;
 
-    // Read file and send to ML service
+    // Read file and send to ML service using form-data
     const fileStream = fs.createReadStream(filePath);
-
     const formData = new FormData();
-    const blob = await new Promise((resolve, reject) => {
-      const chunks = [];
-      fileStream.on('data', chunk => chunks.push(chunk));
-      fileStream.on('end', () => resolve(new Blob(chunks, { type: req.file.mimetype })));
-      fileStream.on('error', reject);
+    formData.append('file', fileStream, {
+      filename: fileName,
+      contentType: req.file.mimetype,
     });
-
-    formData.append('file', blob, fileName);
 
     // Send to FastAPI ML service
     const mlResponse = await axios.post(`${ML_SERVICE_URL}/predict`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        ...formData.getHeaders(),
       },
-      timeout: 60000 // 60 seconds timeout
+      maxBodyLength: Infinity,
+      timeout: 60000, // 60 seconds timeout
     });
 
     // Clean up uploaded file after processing
