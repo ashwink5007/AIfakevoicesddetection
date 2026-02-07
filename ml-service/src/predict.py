@@ -5,6 +5,7 @@ Preprocess → extract features → load model → classify REAL or FAKE with co
 
 import pickle
 import numpy as np
+import sys
 from pathlib import Path
 
 from .preprocess import load_and_preprocess
@@ -13,12 +14,41 @@ from .extract_features import extract_features_from_waveform, TARGET_SR
 MODEL_SAVE_PATH = "models/voice_model.pkl"
 
 
+def _setup_numpy_compatibility():
+    """Set up compatibility layer for numpy._core module reference"""
+    import numpy
+    # Handle both directions: numpy 1.x → 2.x and 2.x → 1.x
+    if not hasattr(numpy, '_core') and hasattr(numpy, 'core'):
+        # NumPy < 2.0: add _core as alias to core
+        sys.modules['numpy._core'] = numpy.core
+    elif hasattr(numpy, '_core') and not hasattr(numpy, 'core'):
+        # NumPy >= 2.0: add core as alias to _core
+        sys.modules['numpy.core'] = numpy._core
+
+
 def _load_artifact(model_path: str) -> dict:
+    """Load pickled model with NumPy compatibility handling"""
     path = Path(model_path)
     if not path.is_file():
         raise FileNotFoundError(f"Model file not found: {model_path}")
-    with open(path, "rb") as f:
-        return pickle.load(f)
+    
+    # Setup compatibility layer BEFORE loading pickle
+    _setup_numpy_compatibility()
+    
+    try:
+        with open(path, "rb") as f:
+            return pickle.load(f)
+    except ModuleNotFoundError as e:
+        if 'numpy' in str(e):
+            raise ModuleNotFoundError(
+                f"NumPy compatibility issue when loading model: {e}\n"
+                "This usually occurs when the model was saved with a different NumPy version.\n"
+                "Try reinstalling NumPy: pip install --upgrade numpy>=2.0.0"
+            ) from e
+        raise
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        raise
 
 
 def predict(audio_path: str, model_path: str = MODEL_SAVE_PATH) -> tuple[str, float]:
