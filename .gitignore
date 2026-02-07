@@ -1,35 +1,28 @@
-# VoiceShield / MINI project - ignore large and generated files
+﻿# Exclude Audio Dataset
+../data/Audio_Dataset/
+data/Audio_Dataset/
 
-# Python
+# Exclude large audio files
+data/processed/
+*.wav
+
+# Exclude feature files
+data/features/
+
+# Exclude cache and Python files
 __pycache__/
-*.py[cod]
-*.pkl
+*.pyc
+.pytest_cache/
+*.pyo
+*.pyd
 .Python
 *.so
-.venv/
-venv/
-env/
 
-# ML data and generated artifacts (too large for GitHub)
-ml-service/data/
-ml-service/features/*.csv
-ml-service/models/*.pkl
+# Exclude model files (if not needed)
+models/*.pth
 
-# Keep placeholders
-!ml-service/features/.gitkeep
-!ml-service/models/.gitkeep
-
-# Node
-node_modules/
-npm-debug.log*
-.npm
-
-# Env and secrets
-.env
-.env.local
-*.env
-
-# IDE / OS
-.DS_Store
-Thumbs.db
-*.log
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
